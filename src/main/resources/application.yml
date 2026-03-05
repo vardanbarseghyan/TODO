@@ -1,0 +1,34 @@
+spring:
+  datasource:                                        # Database connection settings
+    url: jdbc:mysql://localhost:3306/tododb          # localhost = your computer, 3306 = MySQL port, tododb = database name
+    username: todo_user                          # MySQL user we defined in docker-compose
+    password: todo_pass                              # MySQL password we defined in docker-compose
+    driver-class-name: com.mysql.cj.jdbc.Driver     # Tells Spring which database driver to use (MySQL)
+
+  jpa:
+    hibernate:
+      ddl-auto: validate                             # Hibernate will NOT create tables, only VALIDATE they exist (Flyway creates them)
+    show-sql: true                                   # Prints every SQL query in your console (helpful for learning/debugging)
+    properties:
+      hibernate:
+        format_sql: true                             # Makes printed SQL queries readable and nicely formatted
+        dialect: org.hibernate.dialect.MySQLDialect  # Tells Hibernate we are using MySQL specifically
+
+  app:
+    jwt:
+      secret: "vrQmNBEJIosQ6/nnToF04zokUZuxa96wNiJyoIrZi90="
+      access-token-expiration: 900000     # 15 minutes
+      refresh-token-expiration: 604800000 # 7 days
+
+  flyway:
+    enabled: true                                    # Turn on Flyway database migration tool
+    locations: classpath:db/migration                # Flyway looks for SQL files in this folder
+    baseline-on-migrate: true  # Add this to help Flyway initialize correctly
+
+  data:
+    redis:
+      host: localhost                                # Redis is running on your computer
+      port: 6379                                     # Default Redis port
+
+server:
+  port: 8080                                         # Your Spring Boot app runs on port 8080
