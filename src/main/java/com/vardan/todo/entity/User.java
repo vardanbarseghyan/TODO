@@ -39,9 +39,11 @@ public class User extends BaseEntity implements UserDetails {
     If you add a new enum later, the numbers shift and your database breaks.
     Always use STRING so it saves the actual word (like "ADMIN") in the database.
     */
+    @Column(nullable = false)
     private Role role;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AuthProvider provider;
 
     private boolean enabled = true;

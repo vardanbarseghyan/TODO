@@ -5,18 +5,19 @@ import com.vardan.todo.entity.User;
 import com.vardan.todo.repository.RefreshTokenRepository;
 import com.vardan.todo.security.jwt.JwtProperties;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.Optional;
 //-----------------------------------------------------------------
 @Service
 @AllArgsConstructor
+@EnableConfigurationProperties({JwtProperties.class})
 public class RefreshTokenService {
     private final JwtProperties jwtProperties;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
@@ -28,7 +29,7 @@ public class RefreshTokenService {
     public void createRefreshTokenEntity(String refreshToken, User user)
     {
         RefreshToken refreshTokenObj = new RefreshToken();
-        refreshTokenObj.setToken(refreshToken);
+        refreshTokenObj.setToken(refreshToken);//before save in db, we not need to hashed refreshToken value because we generate very secure string with help of code in generateRefreshToken method.
         refreshTokenObj.setUser(user);
         refreshTokenObj.setExpiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()));
         saveRefreshToken(refreshTokenObj);

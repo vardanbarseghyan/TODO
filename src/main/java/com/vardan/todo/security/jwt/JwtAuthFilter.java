@@ -1,30 +1,40 @@
 package com.vardan.todo.security.jwt;
-
-import com.vardan.todo.security.details.CustomUserDetailsService;
+import com.vardan.todo.security.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;//to check the token.
     private final UserDetailsService userDetailsService;//to load the user if the token is good
-    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
+    private final TokenBlacklistService tokenBlacklistService;
 
+    //When a request comes to your backend
+    //The request goes through the Spring Security filter chain.
+    //
+    //HTTP Request
+    //     ↓
+    //Spring Security Filter Chain
+    //     ↓
+    //JwtAuthFilter
+    //     ↓
+    //Controller
+
+    //Spring Security calls it(doFilterInternal) automatically.
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -50,6 +60,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {//Is the user already logged in for this specific request?
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
+                if (tokenBlacklistService.isBlacklisted(jwt)) {//check Redis if token is blacklisted
+                    filterChain.doFilter(request, response);//this mean`stop authentication, continue filter chain, Spring will reject request.
+                    return;
+                }//
                 // If token is valid, we "tell" Spring Security that this user is okay
                 if (jwtService.validToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

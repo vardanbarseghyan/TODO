@@ -6,6 +6,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -20,16 +21,15 @@ import java.util.UUID;
 //this class must generate access and refresh tokens
 //validate tokens, extract information from token
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 //    @Autowired
     private final JwtProperties jwtProperties;//because this service needs access to JWT secret key and expiration times.
-    public JwtService(JwtProperties jwtProperties)
-    {
-        this.jwtProperties = jwtProperties;
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
     public String generateAccessToken(User user) {//Proves what you can access.
-        SecretKey secretKey = Keys.hmacShaKeyFor(
-                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        SecretKey secretKey = getSigningKey();
 
         String token = Jwts.builder()
                 .subject(user.getEmail())//subject and claim part of payload
@@ -54,8 +54,7 @@ public class JwtService {
         return base64Encoder.encodeToString(randomBytes);
     }
     public String extractEmailFromToken(String token) {
-        SecretKey secretKey = Keys.hmacShaKeyFor(
-                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        SecretKey secretKey = getSigningKey();
         //Claims object represents the entire payload (body) of the JWT.
         Claims claim = Jwts.parser()
                 .verifyWith(secretKey)//tells in parser use this key to verify the token signature.
@@ -66,8 +65,7 @@ public class JwtService {
         return email;
     }
     public UUID extractUserIdFromToken(String token) {
-        SecretKey secretKey = Keys.hmacShaKeyFor(
-                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        SecretKey secretKey = getSigningKey();
         Claims claim = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -83,8 +81,7 @@ public class JwtService {
     }
     //Validate token (signature, expiration, user)
     public boolean validToken(String token, UserDetails user) {
-        SecretKey secretKey = Keys.hmacShaKeyFor(
-                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        SecretKey secretKey = getSigningKey();
         Claims claim = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()

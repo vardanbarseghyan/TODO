@@ -22,9 +22,11 @@ public class Todo extends BaseEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TodoStatus status =  TodoStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Priority priority = Priority.MEDIUM;
 
     private LocalDateTime dueDate;

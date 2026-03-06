@@ -12,9 +12,11 @@ import com.vardan.todo.repository.RefreshTokenRepository;
 import com.vardan.todo.repository.UserRepository;
 import com.vardan.todo.security.jwt.JwtProperties;
 import com.vardan.todo.security.jwt.JwtService;
+import com.vardan.todo.security.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.token.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +26,9 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
-//    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
+    private final TokenBlacklistService tokenBlacklistService;
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
@@ -78,7 +80,7 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse newRefreshToken(RefreshTokenRequest newRefreshToken) {
+    public AuthResponse refresh(RefreshTokenRequest newRefreshToken) {
         RefreshToken refreshTokenEntity = refreshTokenService.findByToken(newRefreshToken.getRefreshToken())
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
@@ -108,11 +110,15 @@ public class AuthService {
                 .build();
     }
 
-    public void logout(RefreshTokenRequest request) {
+    public void logout(RefreshTokenRequest request, String accessToken) {
         RefreshToken refreshTokenEntity = refreshTokenService.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
         refreshTokenService.deleteByUser(refreshTokenEntity.getUser());
+        long expiration = jwtProperties.getAccessTokenExpiration();
+
+        tokenBlacklistService.blacklistToken(accessToken, expiration);
+        //Now the access token becomes invalid immediately.
     }
 
 }
