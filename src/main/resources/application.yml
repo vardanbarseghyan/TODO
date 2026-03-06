@@ -1,8 +1,8 @@
 spring:
-  datasource:                                        # Database connection settings
-    url: jdbc:mysql://localhost:3306/tododb          # localhost = your computer, 3306 = MySQL port, tododb = database name
-    username: todo_user                          # MySQL user we defined in docker-compose
-    password: todo_pass                              # MySQL password we defined in docker-compose
+  datasource:
+    url: jdbc:mysql://localhost:3306/tododb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC         # localhost = your computer, 3306 = MySQL port, tododb = database name
+    username: root                         # MySQL user we defined in docker-compose
+    password: 0000                              # MySQL password we defined in docker-compose
     driver-class-name: com.mysql.cj.jdbc.Driver     # Tells Spring which database driver to use (MySQL)
 
   jpa:

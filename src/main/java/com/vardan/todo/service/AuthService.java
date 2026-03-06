@@ -1,6 +1,7 @@
 package com.vardan.todo.service;
 
 import com.vardan.todo.dto.request.LoginRequest;
+import com.vardan.todo.dto.request.RefreshTokenRequest;
 import com.vardan.todo.dto.request.RegisterRequest;
 import com.vardan.todo.dto.response.AuthResponse;
 import com.vardan.todo.entity.RefreshToken;
@@ -25,6 +26,7 @@ public class AuthService {
     private final UserRepository userRepository;
 //    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final JwtProperties jwtProperties;
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
@@ -37,28 +39,11 @@ public class AuthService {
 
         // 2. Create user and HASH the password
         User user = userService.createUser(request);
-//        User user = User.builder()
-//                .email(request.getEmail())
-//                .password(passwordEncoder.encode(request.getPassword())) // Scrambling!
-//                .firstName(request.getFirstName())
-//                .lastName(request.getLastName())
-//                .role(Role.USER) // Default role
-//                .enabled(true)
-//                .provider(AuthProvider.LOCAL)
-//                .build();
-//        userRepository.save(user);
-
         // 3. Generate tokens so they are logged in immediately
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
         refreshTokenService.createRefreshTokenEntity(refreshToken, user);
-        //need append refresh token to save in db
-//        RefreshToken refreshTokenObj = new RefreshToken();
-//        refreshTokenObj.setToken(refreshToken);
-//        refreshTokenObj.setUser(user);
-//        refreshTokenObj.setExpiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()));
-//        refreshTokenService.saveRefreshToken(refreshTokenObj);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -86,15 +71,48 @@ public class AuthService {
         String refreshToken = jwtService.generateRefreshToken(user);
 
         refreshTokenService.deleteByUser(user);
-        //need append refresh token to save in db
-        RefreshToken refreshTokenObj = new RefreshToken();
-        refreshTokenObj.setToken(refreshToken);
-        refreshTokenObj.setUser(user);
-        refreshTokenObj.setExpiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()));
-        refreshTokenService.saveRefreshToken(refreshTokenObj);
+        refreshTokenService.createRefreshTokenEntity(refreshToken, user);
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
     }
+
+    public AuthResponse newRefreshToken(RefreshTokenRequest newRefreshToken) {
+        RefreshToken refreshTokenEntity = refreshTokenService.findByToken(newRefreshToken.getRefreshToken())
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+
+        // 2. Check if the token has expired
+        // Logic: Is the "expiryDate" in the past?
+        if (refreshTokenEntity.getExpiryDate().isBefore(Instant.now())) {
+            // Optional: delete it from DB if it's expired
+            refreshTokenService.deleteByUser(refreshTokenEntity.getUser());
+            throw new RuntimeException("Refresh token was expired. Please make a new signin request");
+        }
+        User user = refreshTokenEntity.getUser();
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshTokenString = jwtService.generateRefreshToken(user);
+        //delete old refresh token entity
+        refreshTokenService.deleteByUser(refreshTokenEntity.getUser());
+        //new refreshTokenEntity
+//        RefreshToken newRefreshTokenEntity = RefreshToken.builder()
+//                .user(user)
+//                .token(refreshTokenString)
+//                .expiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()))
+//                .build();
+        refreshTokenService.createRefreshTokenEntity(refreshTokenString, user);//sra mej save-nela anum:
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshTokenString)
+                .build();
+    }
+
+    public void logout(RefreshTokenRequest request) {
+        RefreshToken refreshTokenEntity = refreshTokenService.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+
+        refreshTokenService.deleteByUser(refreshTokenEntity.getUser());
+    }
+
 }

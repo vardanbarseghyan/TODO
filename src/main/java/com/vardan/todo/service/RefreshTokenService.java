@@ -17,6 +17,7 @@ import java.util.Optional;
 public class RefreshTokenService {
     private final JwtProperties jwtProperties;
     private final RefreshTokenRepository refreshTokenRepository;
+
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }

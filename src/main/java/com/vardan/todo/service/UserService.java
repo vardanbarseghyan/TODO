@@ -5,8 +5,12 @@ import com.vardan.todo.entity.User;
 import com.vardan.todo.enums.AuthProvider;
 import com.vardan.todo.enums.Role;
 import com.vardan.todo.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
+@Service
+@RequiredArgsConstructor
 public class UserService {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
