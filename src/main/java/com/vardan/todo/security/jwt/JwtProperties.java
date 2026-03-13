@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 //Instead of hardcoding values in code
 //for But for multiple related fields we always use`
 @ConfigurationProperties(prefix = "app.jwt")//Tells Spring:"Bind everything under jwt: in application.yml into this clas
-@Component
+//@Component
 @Getter
 @Setter
 public class JwtProperties {

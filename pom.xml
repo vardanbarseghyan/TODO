@@ -34,7 +34,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-
 		<!-- ===== OAUTH2 ===== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -150,6 +149,13 @@
 			<scope>test</scope>
 		</dependency>
 
+<!--		Protect /login endpoint from brute-force attacks-->
+<!--		Bucket4j = library that handles rate limiting logic-->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>8.10.1</version>
+		</dependency>
 	</dependencies>
 
 	<!-- ===== TESTCONTAINERS VERSION MANAGEMENT ===== -->

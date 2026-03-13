@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/tododb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC         # localhost = your computer, 3306 = MySQL port, tododb = database name
-    username: root                         # MySQL user we defined in docker-compose
-    password: 0000                              # MySQL password we defined in docker-compose
+    username: todo_user                         # MySQL user we defined in docker-compose
+    password: todo_password                              # MySQL password we defined in docker-compose
     driver-class-name: com.mysql.cj.jdbc.Driver     # Tells Spring which database driver to use (MySQL)
 
   jpa:
@@ -14,11 +14,11 @@ spring:
         format_sql: true                             # Makes printed SQL queries readable and nicely formatted
         dialect: org.hibernate.dialect.MySQLDialect  # Tells Hibernate we are using MySQL specifically
 
-  app:
-    jwt:
-      secret: "vrQmNBEJIosQ6/nnToF04zokUZuxa96wNiJyoIrZi90="
-      access-token-expiration: 900000     # 15 minutes
-      refresh-token-expiration: 604800000 # 7 days
+app:
+  jwt:
+    secret: "vrQmNBEJIosQ6/nnToF04zokUZuxa96wNiJyoIrZi90="
+    access-token-expiration: 900000     # 15 minutes
+    refresh-token-expiration: 604800000 # 7 days
 
   flyway:
     enabled: true                                    # Turn on Flyway database migration tool
