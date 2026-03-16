@@ -74,7 +74,8 @@ public class TodoService {
 //            todosResponse.add(todoResponse);
 //        }
 
-        Page<TodoResponse> responsePage = todoPage.map(todoMapper::toResponse);        return responsePage;
+        Page<TodoResponse> responsePage = todoPage.map(todoMapper::toResponse);
+        return responsePage;
     }
     public TodoResponse getTodoById(UUID id, User user)
     {

@@ -20,4 +20,7 @@ public interface TodoRepository extends JpaRepository<Todo, UUID> {
     //Find all todos that belong to a specific Category ID.
     List<Todo> findAllByCategoryId(UUID id);
 
+    Long countByCategoryIdAndDeletedFalse(UUID categoryId);//how many active todos belong to this category
+    //this  method only used in Category part.
+
 }

@@ -52,6 +52,20 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(DuplicateCategoryException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateCategoryException(DuplicateCategoryException ex ,HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())           // 409
+                .error("Conflict")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+
     @ExceptionHandler(CategoryDoesNotBelongToUserException.class)
     public ResponseEntity<ErrorResponse> handleCategoryDoesNotBelongUser(CategoryDoesNotBelongToUserException ex ,HttpServletRequest request)
     {
