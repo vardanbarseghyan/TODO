@@ -64,8 +64,8 @@ public class CategoryService {
     {
         Category category = findCategoryByIdAndCheckIfTodoBelongInUser(id, user);
         if (categoryRequest.getName() != null) {
-            if (categoryRepository.existsByNameAndUser(category.getName(), user))
-                throw new DuplicateCategoryException("Category with name " + category.getName() + " already exists");
+            if (categoryRepository.existsByNameAndUser(categoryRequest.getName(), user))
+                throw new DuplicateCategoryException("Category with name " + categoryRequest.getName() + " already exists");
             category.setName(categoryRequest.getName());
         }
         if (categoryRequest.getColor() != null)

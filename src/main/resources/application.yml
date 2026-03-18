@@ -17,7 +17,8 @@ spring:
 app:
   jwt:
     secret: "vrQmNBEJIosQ6/nnToF04zokUZuxa96wNiJyoIrZi90="
-    access-token-expiration: 900000     # 15 minutes
+#    access-token-expiration: 900000     # 15 minutes
+    access-token-expiration: 7200000   # 2 hours
     refresh-token-expiration: 604800000 # 7 days
 
   flyway:
