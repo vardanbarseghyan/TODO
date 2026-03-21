@@ -4,7 +4,10 @@ import com.vardan.todo.dto.request.TodoCreateRequest;
 import com.vardan.todo.dto.request.TodoUpdateRequest;
 import com.vardan.todo.dto.response.TodoResponse;
 import com.vardan.todo.entity.User;
+import com.vardan.todo.enums.Priority;
+import com.vardan.todo.enums.TodoStatus;
 import com.vardan.todo.service.TodoService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,10 +37,15 @@ public class TodoController {
     @GetMapping("")
     public ResponseEntity<Page<TodoResponse>> getAllTodos(
             @AuthenticationPrincipal User user,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(required = false) TodoStatus status,
+            @RequestParam(required = false) Priority priority,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
         // @PageableDefault sets default values when the user doesn't provide ?page=&size=&sort= in the URL
         // Without it, Spring defaults to page=0, size=20, no sorting
-        Page<TodoResponse> todos = todoService.getAllTodosForTheUser(user, pageable);
+    {
+        Page<TodoResponse> todos = todoService.getAllTodosForTheUser(user, status, priority, categoryId, search, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(todos);
     }
     @GetMapping("/{id}")

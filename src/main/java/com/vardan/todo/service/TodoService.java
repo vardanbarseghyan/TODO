@@ -6,6 +6,8 @@ import com.vardan.todo.dto.response.TodoResponse;
 import com.vardan.todo.entity.Category;
 import com.vardan.todo.entity.Todo;
 import com.vardan.todo.entity.User;
+import com.vardan.todo.enums.Priority;
+import com.vardan.todo.enums.TodoStatus;
 import com.vardan.todo.exception.CategoryDoesNotBelongToUserException;
 import com.vardan.todo.exception.EmailAlreadyExistsException;
 import com.vardan.todo.exception.ResourceNotFoundException;
@@ -62,9 +64,13 @@ public class TodoService {
         return todoMapper.toResponse(newTodo);
     }
 
-    public Page<TodoResponse> getAllTodosForTheUser(User user, Pageable pageable)
+    public Page<TodoResponse> getAllTodosForTheUser(User user, TodoStatus status,
+                                                    Priority priority, UUID categoryId,
+                                                    String search, Pageable pageable)
     {
-        Page<Todo> todoPage = todoRepository.findAllByUserAndDeletedFalse(user, pageable);
+//        Page<Todo> todoPage = todoRepository.findAllByUserAndDeletedFalse(user, pageable);
+          Page<Todo> todoPage = todoRepository.searchAndFilter(user, status, priority, categoryId, search, pageable);
+
         //page.map(todoMapper::toResponse) does the same thing as your old for-loop:
 
 //        List<TodoResponse> todosResponse = new ArrayList<>();
