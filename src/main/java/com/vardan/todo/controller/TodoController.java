@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Todo Management", description = "CRUD operations for todos with search, filter, and pagination")
 @RestController
 @RequestMapping("/api/v1/todos")
 @RequiredArgsConstructor
