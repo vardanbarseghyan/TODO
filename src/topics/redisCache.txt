@@ -1,0 +1,140 @@
+package com.vardan.todo.service;
+
+// ADD these imports to your existing CategoryService:
+// import org.springframework.cache.annotation.CacheEvict;
+// import org.springframework.cache.annotation.Cacheable;
+
+// =====================================================
+// CACHING ANNOTATIONS TO ADD TO YOUR CategoryService
+// =====================================================
+// Below are ONLY the method signatures with the caching annotations.
+// Your method bodies stay EXACTLY the same — don't change any logic.
+// Just add the annotation above each method.
+// =====================================================
+
+
+// READ method — cache the result
+// ================================
+// "user_categories" is the cache NAME — all category caches live under this name.
+//
+// "key" defines the Redis key. #user.id means "use the user's UUID as the key."
+// So Redis stores: "user_categories::550e8400-e29b-41d4..." → [cached Page<CategoryResponse>]
+//
+// Each user gets their own cache entry. User A's categories are cached separately
+// from User B's categories because they have different user IDs.
+//
+// FLOW:
+//   1st call from User A → no cache exists → runs the method → stores result in Redis → returns
+//   2nd call from User A → cache found in Redis → method body is SKIPPED → returns cached result
+//   1st call from User B → different key → no cache → runs method → caches under B's key
+
+// @Cacheable(value = "user_categories", key = "#user.id")
+// public Page<CategoryResponse> getAllCategories(User user, Pageable pageable)
+// {
+//     ... your existing code stays the same ...
+// }
+
+
+// WRITE methods — evict (delete) the cache
+// ==========================================
+// When a user creates, updates, or deletes a category, the cached category list
+// for that user becomes STALE (outdated). We must delete it from Redis so the
+// next getAllCategories call fetches fresh data from MySQL.
+//
+// "key = #user.id" ensures we only delete THIS user's cache.
+// If User A creates a category, we don't want to delete User B's cache.
+
+// @CacheEvict(value = "user_categories", key = "#user.id")
+// public CategoryResponse createCategory(User user, CategoryCreateRequest categoryRequest)
+// {
+//     ... your existing code stays the same ...
+// }
+
+// @CacheEvict(value = "user_categories", key = "#user.id")
+// public CategoryResponse updateCategory(User user, UUID id, CategoryUpdateRequest categoryRequest)
+// {
+//     ... your existing code stays the same ...
+// }
+
+// @CacheEvict(value = "user_categories", key = "#user.id")
+// public String deleteCategoryById(UUID id, User user)
+// {
+//     ... your existing code stays the same ...
+// }
+
+
+// =====================================================
+// IMPORTANT: getCategoryById does NOT need caching.
+// Single lookups by ID are already fast (primary key lookup in MySQL).
+// Caching everything adds complexity without much benefit.
+// Only cache operations where the performance gain is significant.
+// =====================================================
+
+
+// =====================================================
+// THE FULL FLOW EXAMPLE:
+// =====================================================
+//
+// 1. User calls GET /api/v1/categories (first time)
+//    → @Cacheable checks Redis → nothing found
+//    → Method runs → hits MySQL → builds response
+//    → Result stored in Redis under key "user_categories::user-uuid"
+//    → Response returned (took ~50ms)
+//
+// 2. User calls GET /api/v1/categories (second time, 30 seconds later)
+//    → @Cacheable checks Redis → FOUND!
+//    → Method body is COMPLETELY SKIPPED (no MySQL query)
+//    → Cached result returned directly from Redis
+//    → Response returned (took ~2ms — 25x faster!)
+//
+// 3. User calls POST /api/v1/categories (creates a new category)
+//    → Method runs normally → saves to MySQL
+//    → @CacheEvict deletes "user_categories::user-uuid" from Redis
+//    → Cache is now empty for this user
+//
+// 4. User calls GET /api/v1/categories (after creating)
+//    → @Cacheable checks Redis → nothing found (was just evicted)
+//    → Method runs → hits MySQL → gets fresh data INCLUDING the new category
+//    → Result stored in Redis again
+//    → Response returned with up-to-date data
+//
+// This cycle repeats: cache → serve from cache → data changes → evict → re-cache
+// =====================================================
+
+
+
+
+
+
+
+1) Yes, exactly right on both points!
+Each user gets their own separate cache entry in Redis.
+The key = "#user.id" is a SpEL expression (Spring Expression Language).
+The # symbol tells Spring: "this is not a literal string — go find the actual value of user.id at runtime."
+So when Vardan (with ID 550e8400-...) calls getAllCategories, Spring evaluates #user.id to 550e8400-... and the Redis key becomes user_categories::550e8400-....
+When another user (with ID 8d314ce5-...) calls the same method,
+the Redis key becomes user_categories::8d314ce5-....
+So Redis ends up storing something like:
+user_categories::550e8400-e29b-41d4-...  →  [Vardan's categories JSON]
+user_categories::8d314ce5-5840-4e65-...  →  [Other user's categories JSON]
+Completely separate entries. When Vardan creates a new category, @CacheEvict(key = "#user.id") deletes ONLY user_categories::550e8400-... — the other user's cache is untouched.
+This is exactly what you want — one user's actions should never affect another user's cached data.
+
+//when I run get all category api the first time,it successfully can store the result values in Redis
+//but the second time when I try to call get all category api, I receive exception because Spring can not convert JSON to my java class
+//First call (writing to Redis): Your method returns a Page<CategoryResponse> which is actually a PageImpl object. Redis takes this object, Jackson converts it to a JSON string like {"content": [...], "number": 0, "size": 10, "totalElements": 3, ...}, and stores that JSON string in Redis. This works perfectly because Jackson knows how to read an object's fields and write them as JSON.
+  Second call (reading from Redis): Spring finds the cached JSON string in Redis and asks Jackson: "Please convert this JSON back into a Java object." Jackson looks at the JSON and sees it needs to create a PageImpl instance. To create any Java object, Jackson needs one of two things — either a default constructor (no arguments) or a constructor annotated with @JsonCreator that tells Jackson which JSON fields map to which constructor parameters.
+  The problem is that PageImpl is a Spring class that you don't control. It has no default constructor — its constructor requires List content, Pageable pageable, and long total. Jackson sees this and says: "I have JSON fields like content, number, size, totalElements, but I don't know how to map these into PageImpl's constructor parameters. I give up." That's the error you saw.
+  Your RestPage class solves this by extending PageImpl and adding a constructor with @JsonCreator and @JsonProperty. Now Jackson sees the JSON, finds the @JsonCreator constructor, matches "content" → content, "number" → number, "size" → size, "totalElements" → totalElements, and successfully creates the object.
+  So the core issue is: Jackson can convert Java → JSON easily (just read the fields), but JSON → Java is harder because it needs to know HOW to construct the object. Your custom classes have @NoArgsConstructor from Lombok so they work fine. Spring's PageImpl doesn't, so we needed the RestPage wrapper.
+
+
+  Page is an interface — it defines what methods must exist (like getContent(), getTotalElements(), getTotalPages(), getNumber()) but has no actual code inside. It's like a contract that says "any class implementing me must have these methods."
+  PageImpl is a class that implements the Page interface. It contains the actual code — the real fields (content list, total elements, pageable info) and the real method bodies that return values. When your repository returns Page<Todo>, the actual object in memory is a PageImpl<Todo> — it's just referenced through the Page interface.
+  Think of it like this from your C# experience: Page is like an interface IPage, and PageImpl is the concrete class that implements it. Same concept.
+  Your RestPage extends PageImpl which implements Page. So the hierarchy is:
+  Page (interface)
+    ↑ implements
+  PageImpl (class)
+    ↑ extends
+  RestPage (your class)

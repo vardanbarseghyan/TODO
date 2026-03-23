@@ -12,10 +12,13 @@ import com.vardan.todo.mapper.CategoryMapper;
 import com.vardan.todo.repository.CategoryRepository;
 import com.vardan.todo.repository.TodoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -34,7 +37,18 @@ public class CategoryService {
         return category;
     }
 
-    public Page<CategoryResponse> getAllCategories(User user, Pageable pageable)
+    @Cacheable(value = "user_categories", key = "#user.id")
+    public List<CategoryResponse> getAllCategoriesCached(User user)
+    {
+        List<Category> categories = categoryRepository.findAllByUser(user);
+        return categories.stream().map(category -> {
+            long todoCount = todoRepository.countByCategoryIdAndDeletedFalse(category.getId());
+            return categoryMapper.toResponse(category, todoCount);
+        }).toList();
+    }
+
+
+    public Page<CategoryResponse> getAllCategoriesPageable(User user, Pageable pageable)
     {
         Page<Category> categories = categoryRepository.findAllByUser(user, pageable);
         Page<CategoryResponse> responsePage = categories.map(category -> {
@@ -51,6 +65,7 @@ public class CategoryService {
         return categoryMapper.toResponse(category, todoCount);
     }
 
+    @CacheEvict(value = "user_categories", key = "#user.id")
     public CategoryResponse createCategory(User user, CategoryCreateRequest categoryRequest)
     {
         Category category = categoryMapper.toEntity(categoryRequest, user);
@@ -60,6 +75,7 @@ public class CategoryService {
         return categoryMapper.toResponse(category, 0);
     }
 
+    @CacheEvict(value = "user_categories", key = "#user.id")
     public CategoryResponse updateCategory(User user, UUID id, CategoryUpdateRequest  categoryRequest)
     {
         Category category = findCategoryByIdAndCheckIfTodoBelongInUser(id, user);
@@ -75,7 +91,7 @@ public class CategoryService {
         return categoryMapper.toResponse(category, todoCount);
     }
 
-
+    @CacheEvict(value = "user_categories", key = "#user.id")
     public String deleteCategoryById(User user, UUID id){
         if (todoRepository.countByCategoryIdAndDeletedFalse(id) > 0)
             throw new RuntimeException("Cannot delete category: it has X active todo");

@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Category Management", description = "CRUD operations for categories. "
@@ -44,9 +45,19 @@ public class CategoryController {
     @GetMapping("")
     public ResponseEntity<Page<CategoryResponse>> getAllCategories(@Parameter(hidden = true) @AuthenticationPrincipal User user,
                                                                    Pageable pageable) {
-        Page<CategoryResponse> categories = categoryService.getAllCategories(user, pageable);
+        Page<CategoryResponse> categories = categoryService.getAllCategoriesPageable(user, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(categories);
     }
+
+
+    // Cached (not paginated) — for dropdowns, sidebars, quick lookups
+    @GetMapping("/all")
+    public ResponseEntity<List<CategoryResponse>> getAllCategoriesCached(
+            @Parameter(hidden = true) @AuthenticationPrincipal User user) {
+        List<CategoryResponse> categories = categoryService.getAllCategoriesCached(user);
+        return ResponseEntity.status(HttpStatus.OK).body(categories);
+    }
+
 
     @Operation(
             summary = "Get a single category by ID",
